@@ -22,8 +22,14 @@ commit:
       value: User interface
     - type: script
       value: helper script
+    - type: test
+      value: Relevant to ava testing framework
+    - type: ci
+      value: CI/CD setup
     - type: deps
       value: Dependencies
+    - type: release
+      value: For release new packages
 branch:
   keys:
     - type: feat
