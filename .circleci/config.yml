@@ -24,6 +24,7 @@ orbs:
   codecov: codecov/codecov@1.0.5
   packtracker: packtracker/report@2.2.6
   sonarcloud: sonarsource/sonarcloud@1.0.0
+  cypress: cypress-io/cypress@1.11.0
 
 workflows:
   version: 2
@@ -31,7 +32,13 @@ workflows:
     jobs:
       - lint
       - test-unit
-      - test-e2e
+      - cypress/run:
+          executor: browsers-chrome75
+          browser: electron
+          yarn: true
+          record: true
+          group: "all tests"
+          command: "yarn test:e2e"
 
 jobs:
   lint:
@@ -62,17 +69,3 @@ jobs:
       - run:
           name: Start unit test
           command: yarn test:unit
-  test-e2e:
-    executor: node12
-    steps:
-      - checkout
-      - info
-      - node/with-cache:
-          dir: node_modules
-          steps:
-            - run:
-                name: Install all dependencies
-                command: yarn install
-      - run:
-          name: Start end-2-end test
-          command: yarn test:e2e --headless
