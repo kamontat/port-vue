@@ -16,6 +16,5 @@
     ":prHourlyLimit2",
     ":prImmediately"
   ],
-  "ignorePaths": ["packages/webpack-visualizer/**", "templates/**"],
   "labels": ["Bot: Renovate", "Status: In Review", "Type: Dependency"]
 }
