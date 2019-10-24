@@ -37,7 +37,7 @@ workflows:
           yarn: true
           record: true
           group: "all tests"
-          command: "yarn test:e2e"
+          command: "yarn test:e2e --headless"
 
 jobs:
   lint:
