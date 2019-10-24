@@ -1,0 +1,21 @@
+{
+  "extends": [
+    "config:base",
+    ":semanticCommits",
+    ":semanticPrefixFix",
+    ":rebaseStalePrs",
+    ":assignAndReview(kamontat)",
+    ":automergePr",
+    ":automergeDigest",
+    ":automergeMinor",
+    ":pinVersions",
+    ":pinSkipCi",
+    ":gitSignOff",
+    ":unpublishSafe",
+    ":prConcurrentLimit10",
+    ":prHourlyLimit2",
+    ":prImmediately"
+  ],
+  "ignorePaths": ["packages/webpack-visualizer/**", "templates/**"],
+  "labels": ["Bot: Renovate", "Status: In Review", "Type: Dependency"]
+}
