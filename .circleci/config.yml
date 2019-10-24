@@ -1,0 +1,196 @@
+version: 2.1
+
+executors:
+  node12:
+    working_directory: /home/circleci/nd
+    docker:
+      - image: circleci/node:12
+    environment:
+      CI: "true"
+      ENV: "ci"
+      APP: /home/circleci/nd
+      CACHE: /tmp/caches
+
+commands:
+  info:
+    description: Start workflow
+    steps:
+      - hello/circleci-env-highlights
+      - hello/system-info
+  save-caches:
+    description: caches data to another job
+    steps:
+      - run:
+          name: Create tmp folder
+          command: mkdir /tmp/caches || exit 0
+      - run:
+          name: Move node_modules to tmp folder
+          command: cp -r node_modules /tmp/caches || exit 0
+      - run:
+          name: Move dist to tmp folder
+          command: cp -r dist /tmp/caches || exit 0
+      - run:
+          name: Move coverage to tmp folder
+          command: cp -r coverage /tmp/caches || exit 0
+      - run:
+          name: Check caches folder
+          command: ls -la /tmp/caches
+      - persist_to_workspace:
+          root: /tmp
+          # Must be relative path from root
+          paths:
+            - caches
+  restore-caches:
+    description: Restore caches folder from workspace
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Check caches folder
+          command: ls -la /tmp/caches
+      - run:
+          name: Restore node_modules from tmp folder
+          command: cp -r /tmp/caches/node_modules . || exit 0
+      - run:
+          name: Restore dist folder from tmp folder
+          command: cp -r /tmp/caches/dist . || exit 0
+      - run:
+          name: Restore coverage from tmp folder
+          command: cp -r /tmp/caches/coverage . || exit 0
+      - run:
+          name: Check project directory
+          command: ls -la .
+
+orbs:
+  hello: circleci/hello-build@0.0.14
+  node: circleci/node@1.1.6
+  codecov: codecov/codecov@1.0.5
+  packtracker: packtracker/report@2.2.6
+  sonarcloud: sonarsource/sonarcloud@1.0.0
+
+workflows:
+  version: 2
+  default:
+    jobs:
+      - install
+      - compile:
+          requires:
+            - install
+      - packtracker/report:
+          requires:
+            - compile
+      - build:
+          requires:
+            - compile
+          filters:
+            branches:
+              only: master
+      - test:
+          requires:
+            - install
+      - hold:
+          type: approval
+          requires:
+            - test
+            - build
+            - packtracker/report
+          filters:
+            branches:
+              only: master
+      - deploy:
+          requires:
+            - hold
+          filters:
+            branches:
+              only: master
+
+jobs:
+  install:
+    executor: node12
+    steps:
+      - checkout
+      - info
+      - node/with-cache:
+          dir: node_modules
+          steps:
+            - run:
+                name: Install all dependencies
+                command: yarn install
+      - save-caches
+  compile:
+    executor: node12
+    steps:
+      - checkout
+      - restore-caches
+      - run:
+          name: Compile Typescript
+          command: yarn compile
+      - run:
+          name: Compile Typescript (Production)
+          command: yarn compile:prod
+      - store_artifacts:
+          path: docs/reports/statistics.html
+          destination: webpack/prod/statistics.html
+      - store_artifacts:
+          path: docs/reports/statistics-dev.html
+          destination: webpack/dev/statistics.html
+      - save-caches
+  test:
+    executor: node12
+    steps:
+      - checkout
+      - restore-caches
+      - run:
+          name: Run ESlint
+          command: yarn helper jlint
+      - run:
+          name: Run test
+          command: yarn helper jtest
+      - codecov/upload:
+          flags: unittest
+      - sonarcloud/scan
+      - store_artifacts:
+          path: docs/reports/eslint/result.xml
+          destination: eslint/result.xml
+      - store_artifacts:
+          path: docs/reports/unittest/result.xml
+          destination: unittest/result.xml
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+      - store_test_results:
+          path: docs/reports
+      - save-caches
+  build:
+    executor: node12
+    steps:
+      - checkout
+      - restore-caches
+      - run:
+          name: Build executable package
+          command: yarn build
+      - store_artifacts:
+          path: dist
+          destination: dist
+      - save-caches
+  deploy:
+    executor: node12
+    steps:
+      - checkout
+      - restore-caches
+      - add_ssh_keys:
+          name: Add deployment key
+          fingerprints:
+            - 48:f0:24:f0:88:c6:05:63:b5:bd:87:25:2a:c1:ca:23
+      - restore_cache:
+          keys:
+            - hub-v1-{{ checksum "scripts/release_core.sh" }}
+            - hub-v1-
+            - hub-
+      - run:
+          name: Run deployment script
+          command: yarn release:core ci
+      - save_cache:
+          key: hub-v1-{{ checksum "scripts/release_core.sh" }}
+          paths:
+            - "/tmp/bin"
