@@ -33,7 +33,7 @@ workflows:
       - lint
       - test-unit
       - cypress/run:
-          executor: browsers-chrome75
+          executor: base-12-6-0
           browser: electron
           yarn: true
           record: true
