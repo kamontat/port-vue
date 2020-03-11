@@ -24,7 +24,7 @@ orbs:
   codecov: codecov/codecov@1.0.5
   packtracker: packtracker/report@2.2.8
   sonarcloud: sonarsource/sonarcloud@1.0.1
-  cypress: cypress-io/cypress@1.17.1
+  cypress: cypress-io/cypress@1.19.0
 
 workflows:
   version: 2
